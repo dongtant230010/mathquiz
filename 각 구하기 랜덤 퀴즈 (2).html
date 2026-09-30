@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ANGLE HUNTER</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,"Malgun Gothic",sans-serif;background:linear-gradient(135deg,#fff8d8,#dff7ff 50%,#f5e5ff);color:#29304b;min-height:100vh}
+.wrap{max-width:1100px;margin:auto;padding:20px}.card{background:#ffffffee;border:3px solid #fff;border-radius:28px;padding:22px;box-shadow:0 14px 35px #7892b833}
+h1{font-size:clamp(35px,6vw,62px);margin:0;color:#5968e8;text-shadow:3px 3px #dce0ff}.sub{font-size:20px;color:#68708f}.goalTitle{font-size:clamp(28px,5vw,46px);font-weight:1000;color:#f06b72;margin:18px 0 28px;text-shadow:2px 2px #ffe6a8}.setup{max-width:700px;margin:8vh auto;text-align:center}
+.row{display:flex;gap:15px;flex-wrap:wrap}.field{flex:1;text-align:left}.field label{display:block;font-weight:800;margin:8px}
+input,select{width:100%;padding:14px;border:3px solid #d8def8;border-radius:15px;background:#fff;font-size:20px;color:#333}
+button{font:inherit}.btn{border:0;border-radius:16px;padding:14px 22px;font-weight:900;cursor:pointer;box-shadow:0 5px 0 #8792c0}.primary{background:#ffdc58;color:#544300}.secondary{background:#c8e9ff;color:#32446a}.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #8792c0}.hidden{display:none!important}
+.top{display:grid;grid-template-columns:1fr auto;gap:15px;align-items:center}.score{font-size:34px;font-weight:1000}.bar{height:24px;background:#eef0fa;border-radius:20px;overflow:hidden}.fill{height:100%;background:linear-gradient(90deg,#6ee7b7,#ffe16a);width:0;transition:.4s}
+.student{text-align:center;font-size:35px;font-weight:1000;margin:10px}.student span{color:#5367ef}.problem{background:#fffdf8;border:3px solid #e8ebfa;border-radius:24px;min-height:390px;display:flex;justify-content:center;align-items:center}.problem svg{width:100%;height:380px}
+.prompt{text-align:center;font-size:27px;font-weight:900;margin:12px}.answerArea{display:flex;gap:10px;justify-content:center;align-items:center}.answerArea input{max-width:220px;text-align:center;font-size:30px}
+.keypad{display:grid;grid-template-columns:repeat(6,65px);gap:7px;justify-content:center;margin-top:12px}.keypad button{border:0;border-radius:12px;background:#e7edff;padding:12px;font-size:20px;font-weight:900}.status{text-align:center;min-height:48px;font-size:27px;font-weight:1000;margin-top:10px}.good{color:#19a76f}.bad{color:#ed526a}.footer{display:flex;justify-content:space-between;align-items:center;gap:10px}.combo{color:#f28b36;font-size:22px;font-weight:900}
+.overlay{position:fixed;inset:0;background:#e8f8fff2;display:flex;align-items:center;justify-content:center;text-align:center;z-index:5}.clearbox h2{font-size:75px;color:#5968e8;margin:0}
+
+.sadFlash{animation:sadShake .55s ease}
+@keyframes sadShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-12px) rotate(-1deg)}40%{transform:translateX(10px) rotate(1deg)}60%{transform:translateX(-7px)}80%{transform:translateX(5px)}}
+.sadFace{font-size:64px;display:inline-block;animation:sadDrop .8s ease}
+@keyframes sadDrop{0%{transform:translateY(-8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+.confetti{position:fixed;top:-20px;width:12px;height:20px;border-radius:3px;z-index:50;pointer-events:none;animation:confettiFall var(--dur) linear forwards}
+@keyframes confettiFall{to{transform:translate(var(--drift),110vh) rotate(900deg);opacity:.95}}
+
+.drawBox{min-height:82px;display:flex;justify-content:center;align-items:center;margin:8px 0}
+.drawLabel{font-size:20px;font-weight:900;color:#7a83a8;margin-right:12px}
+.drawNumber{display:inline-flex;align-items:center;justify-content:center;min-width:105px;height:70px;padding:0 20px;border-radius:22px;background:linear-gradient(135deg,#fff3a8,#ffd4e3);font-size:44px;font-weight:1000;color:#5367ef;box-shadow:0 8px 20px #8a94bd33;border:3px solid white}
+.drawNumber.rolling{animation:drawPulse .18s infinite alternate}
+@keyframes drawPulse{from{transform:scale(.96)}to{transform:scale(1.06)}}
+</style></head><body>
+<div class="wrap"><section id="setup" class="card setup"><h1>🎯 ANGLE HUNTER</h1><div class="goalTitle">🏆 우리 반 1500점 달성 목표!! 🏆</div>
+<div class="row" style="justify-content:center"><div class="field" style="max-width:330px"><label>학생 수</label><input id="studentCount" type="number" min="1" max="50" value="30"></div></div>
+<div id="scoreGuide" style="margin:14px auto 4px;padding:12px 16px;max-width:430px;border-radius:15px;background:#f2f6ff;font-weight:800;color:#66708f">학생 수에 맞춰 정답 점수가 자동 조정됩니다.</div>
+<p><button class="btn primary" id="startBtn">🕹️ 게임 시작</button></p></section>
+<section id="game" class="card hidden"><div class="top"><div><div class="score">🏆 <span id="score">0</span> / 1500점</div><div class="bar"><div id="fill" class="fill"></div></div></div><div style="display:flex;gap:8px"><button id="musicBtn" class="btn secondary">🔊 BGM ON</button><button class="btn secondary" onclick="location.reload()">처음으로</button></div></div>
+<div class="drawBox"><span class="drawLabel">이번 도전자</span><span id="student" class="drawNumber">?</span></div><div id="problem" class="problem"></div>
+<div class="answerArea"><input id="answer" inputmode="numeric" placeholder="각도 입력"><b style="font-size:28px">°</b><button id="submit" class="btn primary">정답 제출!</button></div><div id="keypad" class="keypad"></div>
+<div id="status" class="status"></div><div class="footer"><div class="combo">🔥 <span id="combo">0</span> COMBO</div><span>번호 확인 <b id="turnNow">1</b> / <b id="turnTotal">30</b>명</span><div style="display:flex;gap:8px">
+<button id="pass" class="btn secondary">결석생 PASS ⏭</button>
+<button id="next" class="btn secondary hidden">다음 문제 ▶</button>
+</div></div></section></div>
+<div id="clear" class="overlay hidden"><div class="card clearbox"><h2 id="clearTitle">GAME CLEAR!</h2><p id="clearMsg" style="font-size:32px">🎉 1500점 달성! 🎉</p><button class="btn primary" onclick="location.reload()">다시 도전</button></div></div>
+<script>
+const $=x=>document.getElementById(x);let N=30,score=0,combo=0,qnum=1,ans=0,locked=false,last=0,studentOrder=[],studentIndex=0,basePoints=100,comboStep=10,maxPoints=150;
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,pick=a=>a[rnd(0,a.length-1)];
+function pt(cx,cy,len,deg){let r=deg*Math.PI/180;return [cx+len*Math.cos(r),cy-len*Math.sin(r)]}
+function ray(cx,cy,deg,len=270){let p=pt(cx,cy,len,deg);return `<line x1="${cx}" y1="${cy}" x2="${p[0]}" y2="${p[1]}" stroke="#35405f" stroke-width="6" stroke-linecap="round"/>`}
+function arc(cx,cy,r,a,b,label,color="#ef5970"){
+ let p1=pt(cx,cy,r,a),p2=pt(cx,cy,r,b),delta=((b-a)%360+360)%360,large=delta>180?1:0;
+ let mid=a+delta/2,lp=pt(cx,cy,r+38,mid);
+ return `<path d="M${p1[0]},${p1[1]} A${r},${r} 0 ${large} 0 ${p2[0]},${p2[1]}" fill="none" stroke="${color}" stroke-width="5"/>
+ <text x="${lp[0]}" y="${lp[1]+9}" text-anchor="middle" font-size="28" font-weight="900" fill="${color}">${label}</text>`
+}
+function svg(s){return `<svg viewBox="0 0 800 380">${s}</svg>`}
+function easy(){
+ let type=pick(["straight","vertical"]);
+ if(type==="straight"){
+   let a=rnd(30,150), base=pick([0,15,25,195,205,345]), cx=400,cy=205;
+   // A straight line is base and base+180; splitter is base+a.
+   // Randomly ask either adjacent sector, and rotate the whole figure.
+   let askA=Math.random()<.5, s=ray(cx,cy,base,290)+ray(cx,cy,base+180,290)+ray(cx,cy,base+a,245);
+   ans=askA?a:180-a;
+   s+=arc(cx,cy,76,base,base+a,askA?"?°":`${a}°`,askA?"#ef5970":"#5367ef");
+   s+=arc(cx,cy,112,base+a,base+180,askA?`${180-a}°`:"?°",askA?"#5367ef":"#ef5970");
+   return [s,""];
+ }else{
+   let gap=rnd(30,120), theta=rnd(5,65), cx=400,cy=195;
+   let s=ray(cx,cy,theta,285)+ray(cx,cy,theta+180,285)+ray(cx,cy,theta+gap,285)+ray(cx,cy,theta+gap+180,285);
+   // Randomly choose one of the two vertical-angle pairs, and randomize which side is unknown.
+   let pair=Math.random()<.5?0:1, swap=Math.random()<.5;
+   let a1=theta+(pair?gap:0), a2=theta+(pair?180:gap);
+   if(pair===0){a1=theta;a2=theta+gap}else{a1=theta+gap;a2=theta+180}
+   // pair 1 is supplementary, so instead use the other vertical pair with size 180-gap.
+   let val=pair===0?gap:180-gap;
+   let b1=a1+180,b2=a2+180;
+   ans=val;
+   s+=arc(cx,cy,74,a1,a2,swap?"?°":`${val}°`,swap?"#ef5970":"#5367ef");
+   s+=arc(cx,cy,74,b1,b2,swap?`${val}°`:"?°",swap?"#5367ef":"#ef5970");
+   return [s,""];
+ }
+}
+function normal(){
+ let variant=pick([0,1,2]);
+ let cx=400,cy=210;
+ if(variant===0){
+   // Three adjacent angles on a straight line; unknown can be any of the three.
+   let A=rnd(25,65),B=rnd(25,65);while(A+B>140)B=rnd(25,55);let C=180-A-B;
+   let vals=[C,B,A], unknown=rnd(0,2);ans=vals[unknown];
+   let base=pick([0,15,195,345]), dirs=[base,base+C,base+C+B,base+180];
+   let s=ray(cx,cy,dirs[0],285)+ray(cx,cy,dirs[3],285)+ray(cx,cy,dirs[1],245)+ray(cx,cy,dirs[2],245);
+   for(let i=0;i<3;i++)s+=arc(cx,cy,68+i*30,dirs[i],dirs[i+1],i===unknown?"?°":`${vals[i]}°`,i===unknown?"#ef5970":(i===1?"#8b67d8":"#5367ef"));
+   return [s,""];
+ }
+ if(variant===1){
+   // Intersecting lines: one given angle, ask an adjacent supplementary angle.
+   let g=rnd(35,125),theta=rnd(5,55);ans=180-g;
+   let s=ray(cx,cy,theta,285)+ray(cx,cy,theta+180,285)+ray(cx,cy,theta+g,285)+ray(cx,cy,theta+g+180,285);
+   let flip=Math.random()<.5;
+   if(!flip){s+=arc(cx,cy,72,theta,theta+g,`${g}°`,"#5367ef");s+=arc(cx,cy,105,theta+g,theta+180,"?°","#ef5970")}
+   else{s+=arc(cx,cy,72,theta+180,theta+180+g,`${g}°`,"#5367ef");s+=arc(cx,cy,105,theta+g,theta+180,"?°","#ef5970")}
+   return [s,""];
+ }
+ // One straight angle split in two, but given value is shown as its vertical angle.
+ let a=rnd(35,130),theta=rnd(8,45);ans=180-a;
+ let s=ray(cx,cy,theta,285)+ray(cx,cy,theta+180,285)+ray(cx,cy,theta+a,270)+ray(cx,cy,theta+a+180,270);
+ s+=arc(cx,cy,76,theta+180,theta+a+180,`${a}°`,"#5367ef");
+ s+=arc(cx,cy,105,theta+a,theta+180,"?°","#ef5970");
+ return [s,""];
+}
+function hard(){
+ let variant=pick([0,1,2,3]),cx=400,cy=205;
+
+ if(variant===0){
+   // TYPE A: straight angle split into 3 adjacent angles.
+   // Every number is required: x = 180-a-b.
+   let a=rnd(25,60), b=rnd(25,60);
+   while(a+b>130)b=rnd(25,50);
+   let x=180-a-b; ans=x;
+   let base=rnd(0,15), d0=base, d1=base+a, d2=d1+b, d3=base+180;
+   let st=ray(cx,cy,d0,295)+ray(cx,cy,d3,295)+ray(cx,cy,d1,250)+ray(cx,cy,d2,250);
+   st+=arc(cx,cy,68,d0,d1,`${a}°`,"#5367ef");
+   st+=arc(cx,cy,98,d1,d2,`${b}°`,"#8b67d8");
+   st+=arc(cx,cy,128,d2,d3,"?°","#ef5970");
+   return [st,""];
+ }
+
+ if(variant===1){
+   // TYPE B: first use vertical angles to obtain b, then straight angle.
+   // Top straight angle consists of a + b + x.
+   // b appears ONLY as its vertical counterpart below.
+   let a=rnd(25,55),b=rnd(25,50);
+   while(a+b>125)b=rnd(25,45);
+   let x=180-a-b; ans=x;
+   let base=rnd(0,14), d0=base, d1=base+a, d2=d1+b, d3=base+180;
+   let st=ray(cx,cy,d0,295)+ray(cx,cy,d3,295);
+   // Lines through d1 and d2 create the vertical counterpart of middle angle b.
+   st+=ray(cx,cy,d1,270)+ray(cx,cy,d1+180,270);
+   st+=ray(cx,cy,d2,270)+ray(cx,cy,d2+180,270);
+   st+=arc(cx,cy,70,d0,d1,`${a}°`,"#5367ef");
+   st+=arc(cx,cy,126,d2,d3,"?°","#ef5970");
+   st+=arc(cx,cy,92,d1+180,d2+180,`${b}°`,"#35a77b");
+   return [st,""];
+ }
+
+ if(variant===2){
+   // TYPE C: split one angle into a+b, then find its adjacent supplementary angle.
+   // x = 180-(a+b). Both a and b are necessary.
+   let a=rnd(20,50),b=rnd(20,50);
+   while(a+b>110)b=rnd(20,45);
+   let total=a+b; ans=180-total;
+   let theta=rnd(5,28), end=theta+total, split=theta+a;
+   let st=ray(cx,cy,theta,290)+ray(cx,cy,theta+180,290);
+   st+=ray(cx,cy,end,290)+ray(cx,cy,end+180,290);
+   // Splitter is a ray only, not another full line.
+   st+=ray(cx,cy,split,220);
+   st+=arc(cx,cy,68,theta,split,`${a}°`,"#5367ef");
+   st+=arc(cx,cy,98,split,end,`${b}°`,"#8b67d8");
+   st+=arc(cx,cy,128,end,theta+180,"?°","#ef5970");
+   return [st,""];
+ }
+
+ // TYPE D: opposite angle has same TOTAL as top angle, but unknown is only a PART.
+ // Top total = a+b. Opposite total = c+x, hence x=a+b-c.
+ // Crucially, ? is NOT vertical to a single labeled angle.
+ let a=rnd(25,50),b=rnd(25,50);
+ while(a+b>105)b=rnd(20,45);
+ let total=a+b;
+ let c=rnd(15,total-15), x=total-c; ans=x;
+ let theta=rnd(5,24), end=theta+total;
+ let oppStart=theta+180, oppEnd=end+180, splitTop=theta+a, splitOpp=oppStart+c;
+ let st=ray(cx,cy,theta,290)+ray(cx,cy,theta+180,290);
+ st+=ray(cx,cy,end,290)+ray(cx,cy,end+180,290);
+ // Split rays only; they do not create extra full-line vertical-angle shortcuts.
+ st+=ray(cx,cy,splitTop,215)+ray(cx,cy,splitOpp,215);
+ st+=arc(cx,cy,68,theta,splitTop,`${a}°`,"#5367ef");
+ st+=arc(cx,cy,98,splitTop,end,`${b}°`,"#8b67d8");
+ st+=arc(cx,cy,70,oppStart,splitOpp,`${c}°`,"#35a77b");
+ st+=arc(cx,cy,102,splitOpp,oppEnd,"?°","#ef5970");
+ return [st,""];
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]]}return a}
+function configureScoring(){
+ basePoints=Math.ceil((1500/(N*0.70))/10)*10;
+ basePoints=Math.max(60,basePoints);
+ comboStep=Math.max(10,Math.round(basePoints*0.10/10)*10);
+ maxPoints=basePoints+comboStep*5;
+}
+function prepareStudents(){studentOrder=shuffle(Array.from({length:N},(_,i)=>i+1));studentIndex=0}
+function student(){return studentOrder[studentIndex]}
+
+function drawTick(f=440){tone(f,.055,.022,"square")}
+function revealSound(){tone(523,.09,.045,"square");tone(659,.10,.045,"square",.08);tone(784,.16,.045,"square",.16)}
+function suspensePick(finalNumber){
+ return new Promise(resolve=>{
+   let el=$("student"),count=0,total=22;
+   el.classList.add("rolling");
+   $("problem").style.visibility="hidden";$("answer").disabled=true;$("submit").disabled=true;$("pass").disabled=true;
+   function roll(){
+     count++;
+     el.textContent=rnd(1,N);
+     drawTick(330+count*14);
+     let delay=count<10?70:count<17?105:count<21?160:300;
+     if(count<total)setTimeout(roll,delay);
+     else{
+       el.textContent=finalNumber;el.classList.remove("rolling");revealSound();
+       setTimeout(()=>{$("problem").style.visibility="visible";$("answer").disabled=false;$("submit").disabled=false;$("pass").disabled=false;$("answer").focus();resolve()},550);
+     }
+   }
+   roll();
+ })
+}
+async function make(){
+ let d=pick(["easy","normal"]);
+ let q=d==="easy"?easy():normal();
+ $("problem").innerHTML=svg(q[0]);$("answer").value="";$("status").textContent="";
+ $("next").classList.add("hidden");locked=false;
+ await suspensePick(student());
+}
+function update(){$("score").textContent=score;$("combo").textContent=combo;$("fill").style.width=Math.min(100,score/1500*100)+"%";$("turnNow").textContent=Math.min(studentIndex+1,N);$("turnTotal").textContent=N}
+function submit(){if(locked)return;let v=parseInt($("answer").value);if(isNaN(v))return;locked=true;$("submit").disabled=true;
+ if(v===ans){combo++;let add=Math.min(maxPoints,basePoints+(combo-1)*comboStep);score+=add;$("status").textContent=`✨ 정답! ${ans}°  +${add}점!`;$("status").className="status good";correctSound()}
+ else{combo=0;$("status").className="status bad";sadMoment();wrongSound()}
+ update();
+ if(score>=1500){setTimeout(()=>{clearSound();confettiBurst();$("clearTitle").textContent="GAME CLEAR!";$("clearMsg").textContent=`🎉 ${studentIndex+1}번째 도전자에서 1500점 달성! 🎉`;$("clear").classList.remove("hidden")},500)}
+ else if(studentIndex>=N-1){setTimeout(()=>{failSound();$("clearTitle").textContent="GAME OVER";$("clearMsg").textContent=`아쉽다! 전원 참여 완료 · 최종 ${score}점 / 1500점`;$("clear").classList.remove("hidden")},500)}
+ else $("next").classList.remove("hidden")
+}
+let audioCtx=null,musicOn=true,bgmTimer=null,bgmStep=0;
+function ctx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
+function tone(freq,dur,vol=.035,type="sine",delay=0){
+ let c=ctx(),o=c.createOscillator(),g=c.createGain(),t=c.currentTime+delay;
+ o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+ o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur);
+}
+function correctSound(){tone(659,.12,.085,"square");tone(784,.12,.085,"square",.11);tone(1047,.22,.078,"square",.22)}
+function wrongSound(){tone(220,.18,.075,"sawtooth");tone(165,.32,.065,"sawtooth",.15)}
+function clearSound(){[523,659,784,1047,1319].forEach((f,i)=>tone(f,.32,.08,"square",i*.13))}
+function failSound(){[330,294,247,196].forEach((f,i)=>tone(f,.28,.065,"sawtooth",i*.16))}
+function confettiBurst(){
+ const colors=["#ff5d73","#ffd84d","#62d6a8","#5aa7ff","#b983ff","#ff9f43"];
+ for(let i=0;i<140;i++){
+   let e=document.createElement("div");e.className="confetti";
+   e.style.left=Math.random()*100+"vw";e.style.background=colors[Math.floor(Math.random()*colors.length)];
+   e.style.setProperty("--dur",(2.2+Math.random()*2.2)+"s");
+   e.style.setProperty("--drift",(-180+Math.random()*360)+"px");
+   e.style.animationDelay=(Math.random()*.7)+"s";
+   document.body.appendChild(e);setTimeout(()=>e.remove(),5200);
+ }
+}
+function sadMoment(){
+ $("game").classList.add("sadFlash");
+ $("status").innerHTML=`<span class="sadFace">😢</span><br>아쉬워요! 정답은 ${ans}°`;
+ setTimeout(()=>$("game").classList.remove("sadFlash"),650);
+}
+const melody=[523,659,784,659,587,698,880,698,494,587,740,587,523,659,784,1047];
+function bgmTick(){if(!musicOn)return;let f=melody[bgmStep++%melody.length];tone(f,.16,.018,"triangle");if(bgmStep%4===1)tone(f/2,.28,.012,"sine");}
+function startBGM(){ctx().resume();if(bgmTimer)clearInterval(bgmTimer);bgmTick();bgmTimer=setInterval(bgmTick,330)}
+function toggleMusic(){musicOn=!musicOn;$("musicBtn").textContent=musicOn?"🔊 BGM ON":"🔇 BGM OFF";if(musicOn)startBGM();else if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null}}
+$("startBtn").onclick=()=>{N=Math.max(1,Math.min(50,parseInt($("studentCount").value)||30));configureScoring();prepareStudents();$("setup").classList.add("hidden");$("game").classList.remove("hidden");update();startBGM();make()};$("musicBtn").onclick=toggleMusic;$("submit").onclick=submit;$("next").onclick=()=>{qnum++;studentIndex++;update();make()};$("pass").onclick=()=>{
+ if(locked)return;
+ if(studentIndex>=N-1){
+   // Last listed student is absent: finish based on current score.
+   locked=true;
+   if(score>=1500){
+     clearSound();confettiBurst();$("clearTitle").textContent="GAME CLEAR!";
+     $("clearMsg").textContent=`🎉 1500점 달성! 🎉`;
+   }else{
+     failSound();$("clearTitle").textContent="GAME OVER";
+     $("clearMsg").textContent=`전원 확인 완료 · 최종 ${score}점 / 1500점`;
+   }
+   $("clear").classList.remove("hidden");
+   return;
+ }
+ studentIndex++;qnum++;update();make();
+};;$("answer").onkeydown=e=>{if(e.key==="Enter"){locked?$("next").click():submit()}};
+for(let i=1;i<=9;i++){let b=document.createElement("button");b.textContent=i;b.onclick=()=>{if(!locked)$("answer").value+=i};$("keypad").appendChild(b)}let z=document.createElement("button");z.textContent="0";z.onclick=()=>{if(!locked)$("answer").value+="0"};$("keypad").appendChild(z);let del=document.createElement("button");del.textContent="⌫";del.onclick=()=>{if(!locked)$("answer").value=$("answer").value.slice(0,-1)};$("keypad").appendChild(del);
+function previewScore(){
+ let n=Math.max(1,Math.min(50,parseInt($("studentCount").value)||30));
+ let bp=Math.ceil((1500/(n*.70))/10)*10;bp=Math.max(60,bp);
+ $("scoreGuide").textContent=`${n}명 기준 · 정답 기본 +${bp}점 · 연속 정답 시 콤보 보너스`;
+}
+$("studentCount").addEventListener("input",previewScore);previewScore();
+</script></body></html>
